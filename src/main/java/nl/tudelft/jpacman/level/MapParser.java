@@ -56,32 +56,26 @@ public class MapParser {
 
     protected void addSquare(Square[][] grid, List<Ghost> ghosts,
                              List<Square> startPositions, int x, int y, char symbol) {
-        if (symbol == ' ') {
-            addGroundSquare(grid, x, y);
-            return;
+        switch (symbol) {
+            case ' ':
+                addGroundSquare(grid, x, y);
+                break;
+            case '#':
+                addWallSquare(grid, x, y);
+                break;
+            case '.':
+                addPelletSquare(grid, x, y);
+                break;
+            case 'G':
+                addGhostToGrid(grid, ghosts, x, y);
+                break;
+            case 'P':
+                addPlayerStartSquare(grid, startPositions, x, y);
+                break;
+            default:
+                throwInvalidCharacter(x, y, symbol);
+                break;
         }
-
-        if (symbol == '#') {
-            addWallSquare(grid, x, y);
-            return;
-        }
-
-        if (symbol == '.') {
-            addPelletSquare(grid, x, y);
-            return;
-        }
-
-        if (symbol == 'G') {
-            addGhostToGrid(grid, ghosts, x, y);
-            return;
-        }
-
-        if (symbol == 'P') {
-            addPlayerStartSquare(grid, startPositions, x, y);
-            return;
-        }
-
-        throwInvalidCharacter(x, y, symbol);
     }
 
     void addGroundSquare(Square[][] grid, int x, int y) {
@@ -128,84 +122,12 @@ public class MapParser {
     }
 
     public Level parseMap(List<String> text) {
-        checkMapFormat(text);
+        MapText mapText = new MapText(text);
+        mapText.validate();
 
-        int height = getRowCount(text);
-        String firstRow = getFirstRow(text);
-        int width = firstRow.length();
-
-        char[][] map = new char[width][height];
-        copyTextToMap(text, map, width, height);
+        char[][] map = mapText.toCharGrid();
 
         return parseMap(map);
-    }
-
-    void copyTextToMap(List<String> text, char[][] map, int width, int height) {
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                String row = getRow(text, y);
-                map[x][y] = row.charAt(x);
-            }
-        }
-    }
-
-    int getRowCount(List<String> text) {
-        return text.size();
-    }
-
-    String getFirstRow(List<String> text) {
-        return getRow(text, 0);
-    }
-
-    String getRow(List<String> text, int rowIndex) {
-        return text.get(rowIndex);
-    }
-
-    void checkMapFormat(List<String> text) {
-        checkTextExists(text);
-        checkTextHasRows(text);
-
-        String firstRow = getFirstRow(text);
-        checkRowNotEmpty(firstRow);
-
-        int expectedWidth = firstRow.length();
-        checkEqualWidths(text, expectedWidth);
-    }
-
-    void checkTextExists(List<String> text) {
-        if (text == null) {
-            throw new PacmanConfigurationException("Input text cannot be null.");
-        }
-    }
-
-    void checkTextHasRows(List<String> text) {
-        if (text.isEmpty()) {
-            throw new PacmanConfigurationException(
-                "Input text must consist of at least 1 row."
-            );
-        }
-    }
-
-    void checkRowNotEmpty(String row) {
-        if (row.length() == 0) {
-            throw new PacmanConfigurationException(
-                "Input text lines cannot be empty."
-            );
-        }
-    }
-
-    void checkEqualWidths(List<String> text, int expectedWidth) {
-        for (String row : text) {
-            checkSingleRowWidth(row, expectedWidth);
-        }
-    }
-
-    void checkSingleRowWidth(String row, int expectedWidth) {
-        if (row.length() != expectedWidth) {
-            throw new PacmanConfigurationException(
-                "Input text lines are not of equal width."
-            );
-        }
     }
 
     public Level parseMap(InputStream source) throws IOException {

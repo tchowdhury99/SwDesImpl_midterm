@@ -24,19 +24,15 @@ import nl.tudelft.jpacman.ui.PacManUiBuilder;
 @SuppressWarnings("PMD.TooManyMethods")
 public class Launcher {
 
-    static PacManSprites SPRITE_STORE = new PacManSprites();
+    static PacManSprites spriteStore = new PacManSprites();
 
-    public static String DEFAULT_MAP = "/board.txt";
+    public static String defaultMap = "/board.txt";
 
-    String levelMap = DEFAULT_MAP;
+    String levelMap = defaultMap;
 
     PacManUI pacManUI;
 
     Game game;
-
-    public Launcher() {
-        super();
-    }
 
     public Game getGame() {
         return game;
@@ -52,13 +48,11 @@ public class Launcher {
     }
 
     public Game makeGame() {
-
         GameFactory gameFactory = getGameFactory();
         Level level = makeLevel();
         PointCalculator calculator = loadPointCalculator();
 
         game = gameFactory.createSinglePlayerGame(level, calculator);
-
         return game;
     }
 
@@ -68,44 +62,34 @@ public class Launcher {
     }
 
     public Level makeLevel() {
-
         MapParser parser = getMapParser();
         String mapFile = getLevelMap();
 
-        Level level;
-
         try {
-            level = parser.parseMap(mapFile);
+            return parser.parseMap(mapFile);
         } catch (IOException exception) {
             throw new PacmanConfigurationException(
                 "Unable to create level, name = " + mapFile, exception
             );
         }
-
-        return level;
     }
 
     MapParser getMapParser() {
-
         LevelFactory levelFactory = getLevelFactory();
         BoardFactory boardFactory = getBoardFactory();
-
         return new MapParser(levelFactory, boardFactory);
     }
 
     BoardFactory getBoardFactory() {
-
         PacManSprites sprites = getSpriteStore();
-
         return new BoardFactory(sprites);
     }
 
     PacManSprites getSpriteStore() {
-        return SPRITE_STORE;
+        return spriteStore;
     }
 
     LevelFactory getLevelFactory() {
-
         PacManSprites sprites = getSpriteStore();
         GhostFactory ghostFactory = getGhostFactory();
         PointCalculator calculator = loadPointCalculator();
@@ -114,28 +98,21 @@ public class Launcher {
     }
 
     GhostFactory getGhostFactory() {
-
         PacManSprites sprites = getSpriteStore();
-
         return new GhostFactory(sprites);
     }
 
     GameFactory getGameFactory() {
-
         PlayerFactory playerFactory = getPlayerFactory();
-
         return new GameFactory(playerFactory);
     }
 
     PlayerFactory getPlayerFactory() {
-
         PacManSprites sprites = getSpriteStore();
-
         return new PlayerFactory(sprites);
     }
 
     void addSinglePlayerKeys(PacManUiBuilder builder) {
-
         builder.addKey(KeyEvent.VK_UP, moveTowardsDirection(Direction.NORTH));
         builder.addKey(KeyEvent.VK_DOWN, moveTowardsDirection(Direction.SOUTH));
         builder.addKey(KeyEvent.VK_LEFT, moveTowardsDirection(Direction.WEST));
@@ -143,72 +120,71 @@ public class Launcher {
     }
 
     Action moveTowardsDirection(Direction direction) {
-
         return () -> moveSinglePlayer(direction);
     }
 
     void moveSinglePlayer(Direction direction) {
-
         Game currentGame = requireGame();
+        Player player = singlePlayerOf(currentGame);
+        movePlayer(currentGame, player, direction);
+    }
 
-        Player player = getSinglePlayer(currentGame);
-
+    void movePlayer(Game currentGame, Player player, Direction direction) {
         currentGame.move(player, direction);
     }
 
     Game requireGame() {
-
         assert game != null;
-
         return game;
     }
 
-    Player getSinglePlayer(Game currentGame) {
-
-        List<Player> players = currentGame.getPlayers();
+    Player singlePlayerOf(Game currentGame) {
+        List<Player> players = playersOf(currentGame);
 
         if (players.isEmpty()) {
             throw new IllegalArgumentException("Game has 0 players.");
         }
 
+        return firstPlayer(players);
+    }
+
+    List<Player> playersOf(Game currentGame) {
+        return currentGame.getPlayers();
+    }
+
+    Player firstPlayer(List<Player> players) {
         return players.get(0);
     }
 
     PacManUiBuilder createConfiguredBuilder() {
-
-        PacManUiBuilder builder = new PacManUiBuilder();
-
-        builder.withDefaultButtons();
-
+        PacManUiBuilder builder = createBaseBuilder();
         addSinglePlayerKeys(builder);
+        return builder;
+    }
 
+    PacManUiBuilder createBaseBuilder() {
+        PacManUiBuilder builder = new PacManUiBuilder();
+        builder.withDefaultButtons();
         return builder;
     }
 
     public void launch() {
-
         makeGame();
 
         PacManUiBuilder builder = createConfiguredBuilder();
-
         Game runningGame = requireGame();
 
         pacManUI = builder.build(runningGame);
-
         pacManUI.start();
     }
 
     public void dispose() {
-
         assert pacManUI != null;
-
         pacManUI.dispose();
     }
 
     public static void main(String[] args) throws IOException {
-
         Launcher launcher = new Launcher();
-
         launcher.launch();
     }
 }

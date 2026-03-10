@@ -10,20 +10,21 @@ import nl.tudelft.jpacman.points.PointCalculator;
 
 /**
  * A basic implementation of a Pac-Man game.
- *
- * @author Jeroen Roosen
  */
 public abstract class Game implements LevelObserver {
 
-    private boolean inProgress;
+    boolean inProgress;
 
-    private final Object progressLock = new Object();
+    Object progressLock = new Object();
 
-    private PointCalculator pointCalculator;
+    PointCalculator pointCalculator;
+
+    GameSession session;
 
     protected Game(PointCalculator pointCalculator) {
         this.pointCalculator = pointCalculator;
-        inProgress = false;
+        this.inProgress = false;
+        this.session = new GameSession(this);
     }
 
     public void start() {
@@ -32,9 +33,7 @@ public abstract class Game implements LevelObserver {
                 return;
             }
 
-            if (canStartGame()) {
-                startGameSession();
-            }
+            session.startSession();
         }
     }
 
@@ -44,12 +43,16 @@ public abstract class Game implements LevelObserver {
                 return;
             }
 
-            stopGameSession();
+            session.stopSession();
         }
     }
 
     public boolean isInProgress() {
         return inProgress;
+    }
+
+    void setInProgress(boolean inProgressState) {
+        inProgress = inProgressState;
     }
 
     public abstract List<Player> getPlayers();
@@ -61,38 +64,25 @@ public abstract class Game implements LevelObserver {
             return;
         }
 
-        movePlayerOnLevel(player, direction);
-        registerMovePoints(player, direction);
+        movePlayer(player, direction);
+        registerMove(player, direction);
     }
 
-    boolean canStartGame() {
+    void movePlayer(Player player, Direction direction) {
         Level level = currentLevel();
-        return level.isAnyPlayerAlive() && level.remainingPellets() > 0;
+        level.move(player, direction);
     }
 
-    void startGameSession() {
-        inProgress = true;
-
-        Level level = currentLevel();
-        level.addObserver(this);
-        level.start();
-    }
-
-    void stopGameSession() {
-        inProgress = false;
-        currentLevel().stop();
-    }
-
-    void movePlayerOnLevel(Player player, Direction direction) {
-        currentLevel().move(player, direction);
-    }
-
-    void registerMovePoints(Player player, Direction direction) {
+    void registerMove(Player player, Direction direction) {
         pointCalculator.pacmanMoved(player, direction);
     }
 
     Level currentLevel() {
         return getLevel();
+    }
+
+    boolean canStartGame() {
+        return session.canStartSession();
     }
 
     @Override
